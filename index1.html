@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>기사 프로젝트 노트</title>
+<style>
+  /* 05 소개 페이지의 색을 받으면 아래 변수만 바꾸면 됩니다 */
+  :root{
+    --bg:#f6f3ee;
+    --card:#ffffff;
+    --ink:#1f2328;
+    --muted:#6b7280;
+    --line:#e3ddd3;
+    --accent:#2f5d50;
+    --accent-soft:#e4efe9;
+    --today:#fff6dc;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;
+    line-height:1.6;
+  }
+  .wrap{max-width:720px;margin:0 auto;padding:20px 16px 56px}
+  header{padding:12px 2px 20px}
+  header small{color:var(--accent);font-weight:700;letter-spacing:.04em}
+  header h1{margin:4px 0 0;font-size:1.6rem;line-height:1.25}
+  section{
+    background:var(--card);border:1px solid var(--line);
+    border-radius:var(--radius);padding:18px 16px;margin-bottom:14px;
+  }
+  h2{margin:0 0 12px;font-size:1rem;color:var(--accent);display:flex;align-items:center;gap:8px}
+  h2::before{content:"";width:6px;height:16px;border-radius:3px;background:var(--accent)}
+  label.k{display:block;font-size:.8rem;color:var(--muted);margin:10px 0 4px}
+  label.k:first-of-type{margin-top:0}
+  textarea,input[type=text]{
+    width:100%;font:inherit;color:var(--ink);background:#fcfbf9;
+    border:1px solid var(--line);border-radius:10px;padding:10px 12px;
+    resize:vertical;
+  }
+  textarea{min-height:48px}
+  textarea:focus,input[type=text]:focus{outline:2px solid var(--accent);outline-offset:1px;background:#fff}
+  ::placeholder{color:#a39b8d}
+  .angle{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    margin-top:12px;padding:10px 12px;border-radius:10px;
+    background:var(--accent-soft);
+  }
+  .angle span:first-child{font-size:.8rem;color:var(--muted)}
+  .angle b{color:var(--accent)}
+  ul.todo{list-style:none;margin:0;padding:0}
+  ul.todo li{display:flex;align-items:center;gap:10px;padding:6px 0}
+  ul.todo input[type=checkbox]{
+    width:24px;height:24px;flex:none;accent-color:var(--accent);margin:0;
+  }
+  ul.todo input[type=text]{flex:1}
+  ul.todo li.done input[type=text]{text-decoration:line-through;color:var(--muted)}
+  .log{display:grid;gap:10px}
+  .day{
+    display:grid;grid-template-columns:64px 1fr;gap:10px;align-items:start;
+    padding:8px;border-radius:10px;
+  }
+  .day.today{background:var(--today);border:1px solid #efdca0}
+  .day .d{font-weight:700;padding-top:9px}
+  .day .d em{display:block;font-style:normal;font-size:.7rem;color:var(--accent);margin-top:-4px}
+  footer{color:var(--muted);font-size:.75rem;text-align:center;margin-top:18px}
+  @media (min-width:600px){
+    .wrap{padding-top:36px}
+    header h1{font-size:2rem}
+    section{padding:22px 22px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <small>PROJECT NOTE</small>
+    <h1>기사 프로젝트 노트</h1>
+  </header>
+
+  <section>
+    <h2>프로젝트</h2>
+    <label class="k" for="brief">프로젝트 한 줄</label>
+    <textarea id="brief" rows="2" placeholder="[브리프 한 줄]"></textarea>
+    <label class="k" for="team">팀원</label>
+    <textarea id="team" rows="2" placeholder="[이름·역할]"></textarea>
+  </section>
+
+  <section>
+    <h2>주제</h2>
+    <label class="k" for="topic">대주제</label>
+    <textarea id="topic" rows="2" placeholder="[배정받은 대주제]"></textarea>
+    <div class="angle"><span>내 앵글</span><b>내일 정함</b></div>
+  </section>
+
+  <section>
+    <h2>할 일 체크리스트</h2>
+    <ul class="todo" id="todo"></ul>
+  </section>
+
+  <section>
+    <h2>날짜별 기록</h2>
+    <div class="log" id="log"></div>
+  </section>
+
+  <footer>입력한 내용은 이 기기의 브라우저에 저장돼요.</footer>
+</div>
+
+<script>
+(function(){
+  var KEY="project-note-v1";
+  var state={};
+  try{ state=JSON.parse(localStorage.getItem(KEY)||"{}"); }catch(e){ state={}; }
+  function save(){ try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){} }
+  function bind(el,key){
+    if(state[key]!=null) el.value=state[key];
+    el.addEventListener("input",function(){ state[key]=el.value; save(); });
+  }
+
+  ["brief","team","topic"].forEach(function(id){ bind(document.getElementById(id),id); });
+
+  // 체크리스트 5칸 (내용은 비워 둠)
+  var todo=document.getElementById("todo");
+  for(var i=1;i<=5;i++){(function(i){
+    var li=document.createElement("li");
+    var cb=document.createElement("input"); cb.type="checkbox"; cb.setAttribute("aria-label","할 일 "+i+" 완료");
+    var tx=document.createElement("input"); tx.type="text"; tx.placeholder="할 일 "+i;
+    li.appendChild(cb); li.appendChild(tx); todo.appendChild(li);
+    bind(tx,"todo_t"+i);
+    if(state["todo_c"+i]){ cb.checked=true; li.classList.add("done"); }
+    cb.addEventListener("change",function(){
+      state["todo_c"+i]=cb.checked; li.classList.toggle("done",cb.checked); save();
+    });
+  })(i);}
+
+  // 날짜별 기록: 11/18부터 오늘까지
+  var log=document.getElementById("log");
+  var now=new Date();
+  var start=new Date(now.getFullYear(),10,18); // 11월 18일
+  var today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  if(today<start) today=start;
+  for(var d=new Date(start); d<=today; d.setDate(d.getDate()+1)){
+    var m=d.getMonth()+1, dd=d.getDate();
+    var key="log_"+m+"_"+dd;
+    var isToday=(d.getTime()===today.getTime());
+    var row=document.createElement("div"); row.className="day"+(isToday?" today":"");
+    var lab=document.createElement("div"); lab.className="d";
+    lab.innerHTML=m+"/"+dd+(isToday?"<em>오늘</em>":"");
+    var ta=document.createElement("textarea"); ta.rows=2;
+    ta.placeholder=isToday?"오늘 한 줄":"한 줄";
+    ta.setAttribute("aria-label",m+"월 "+dd+"일 기록");
+    row.appendChild(lab); row.appendChild(ta); log.appendChild(row);
+    bind(ta,key);
+  }
+})();
+</script>
+</body>
+</html>
