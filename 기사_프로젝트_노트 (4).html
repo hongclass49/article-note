@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>기사 프로젝트 노트</title>
+<style>
+  :root {
+    --bg: #f5efe4;      /* 바탕 */
+    --card: #fffdf8;    /* 칸 배경 */
+    --ink: #2b2a33;     /* 글자 */
+    --accent: #1f3a5f;  /* 남색 포인트 */
+    --line: #d9cfbd;    /* 선·테두리 */
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px 16px 60px;
+    background: var(--bg); color: var(--ink);
+    font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 18px; color: var(--accent); }
+  section {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 14px; padding: 16px 16px 18px; margin-bottom: 14px;
+  }
+  h2 { font-size: 13px; letter-spacing: .04em; margin: 0 0 10px; color: var(--accent); }
+  input[type=text] {
+    width: 100%; font: inherit; color: inherit;
+    border: 0; border-bottom: 1px solid var(--line); background: transparent;
+    padding: 6px 2px; outline: none; border-radius: 0;
+  }
+  input[type=text]:focus { border-bottom-color: var(--accent); }
+  input::placeholder { color: #b3a994; }
+
+  /* 체크리스트 */
+  .todo { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .todo input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--accent); flex: none; }
+  .todo input[type=checkbox]:checked + input { text-decoration: line-through; color: #8d8574; }
+
+  /* 날짜별 기록 — 타임라인 */
+  .timeline { position: relative; margin: 4px 0 6px; padding-left: 26px; }
+  .timeline::before {            /* 세로선 */
+    content: ""; position: absolute; left: 6px; top: 14px; bottom: 14px;
+    width: 2px; background: var(--line);
+  }
+  .row { position: relative; display: flex; align-items: center; gap: 10px; padding: 5px 0; }
+  .row::before {                 /* 선 위의 점 */
+    content: ""; position: absolute; left: -26px; top: 50%;
+    width: 14px; height: 14px; margin-top: -7px; border-radius: 50%;
+    background: var(--card); border: 3px solid var(--accent);
+  }
+  .row.filled::before { background: var(--accent); }
+  .row.today .date { color: var(--accent); }
+  .date { flex: none; width: 44px; font-size: 14px; font-weight: 700; color: #6b6657; }
+  .row input[type=text] { flex: 1; min-width: 0; }
+
+  button.add {
+    margin: 10px 0 0 26px; font: inherit; font-size: 14px; color: var(--accent);
+    background: transparent; border: 1px dashed var(--accent); border-radius: 999px;
+    padding: 6px 14px; cursor: pointer;
+  }
+  button.add:active { background: rgba(31,58,95,.08); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>기사 프로젝트 노트</h1>
+
+  <section>
+    <h2>프로젝트 한 줄</h2>
+    <input type="text" id="project" placeholder="프로젝트를 한 줄로 적어 주세요">
+  </section>
+
+  <section>
+    <h2>주제</h2>
+    <input type="text" id="topic" placeholder="대주제만 적어 주세요">
+  </section>
+
+  <section>
+    <h2>할 일</h2>
+    <div id="todos"></div>
+  </section>
+
+  <section>
+    <h2>날짜별 기록</h2>
+    <div class="timeline" id="timeline"></div>
+    <button class="add" id="addDay" type="button">+ 다음 날 추가</button>
+  </section>
+</div>
+
+<script>
+(function () {
+  var KEY = "gisa-project-note-v1";
+  var START = new Date(2026, 10, 18);           // 11/18
+  var state = { project: "", topic: "", todos: [], days: [] };
+
+  try { var saved = JSON.parse(localStorage.getItem(KEY)); if (saved) state = Object.assign(state, saved); } catch (e) {}
+  while (state.todos.length < 5) state.todos.push({ done: false, text: "" });
+  if (!state.days.length) state.days.push("");
+
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+
+  function label(i) {
+    var d = new Date(START.getFullYear(), START.getMonth(), START.getDate() + i);
+    return (d.getMonth() + 1) + "/" + d.getDate();
+  }
+  function todayIndex() {
+    var n = new Date();
+    return Math.round((new Date(n.getFullYear(), n.getMonth(), n.getDate()) - START) / 86400000);
+  }
+
+  // 프로젝트 / 주제
+  ["project", "topic"].forEach(function (id) {
+    var el = document.getElementById(id);
+    el.value = state[id];
+    el.addEventListener("input", function () { state[id] = el.value; save(); });
+  });
+
+  // 할 일 5개
+  var todos = document.getElementById("todos");
+  state.todos.slice(0, 5).forEach(function (t, i) {
+    var row = document.createElement("div"); row.className = "todo";
+    var cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!t.done;
+    var tx = document.createElement("input"); tx.type = "text"; tx.value = t.text; tx.placeholder = "할 일 " + (i + 1);
+    cb.addEventListener("change", function () { state.todos[i].done = cb.checked; save(); });
+    tx.addEventListener("input", function () { state.todos[i].text = tx.value; save(); });
+    row.appendChild(cb); row.appendChild(tx); todos.appendChild(row);
+  });
+
+  // 날짜별 기록 (타임라인)
+  var tl = document.getElementById("timeline");
+  function addRow(i) {
+    var row = document.createElement("div");
+    row.className = "row" + (i === todayIndex() ? " today" : "") + (state.days[i] ? " filled" : "");
+    var d = document.createElement("span"); d.className = "date"; d.textContent = label(i);
+    var tx = document.createElement("input"); tx.type = "text"; tx.value = state.days[i];
+    tx.placeholder = i === todayIndex() ? "오늘 한 줄" : "한 줄 기록";
+    tx.addEventListener("input", function () {
+      state.days[i] = tx.value; row.classList.toggle("filled", !!tx.value); save();
+    });
+    row.appendChild(d); row.appendChild(tx); tl.appendChild(row);
+  }
+  state.days.forEach(function (_, i) { addRow(i); });
+
+  document.getElementById("addDay").addEventListener("click", function () {
+    state.days.push(""); addRow(state.days.length - 1); save();
+    tl.lastChild.querySelector("input").focus();
+  });
+})();
+</script>
+</body>
+</html>
